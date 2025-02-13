@@ -6,13 +6,77 @@
 #include <vector>
 #include <sstream>
 #include <iomanip>
-#include <algorithm>
-#include <eigen3/Eigen/Dense> //more popular for scientific computing
+#include <cmath>
+#include <stdexcept>
 
 using namespace std;
-using namespace Eigen;
 
-/*
+inline double sign(const double &a, const double &b) {
+    return (b >= 0.0) ? fabs(a) : -fabs(a);
+} 
+
+ostream & operator<<(ostream & os, const vector<vector<double>> & vec);
+
+class Atoms {
+    private:
+        string filename;
+
+    public:
+        Atoms(const string &filename);
+
+        vector<vector<double>> read_xyz(const string &filename);
+
+        friend ostream & operator<<(ostream & os, const vector<vector<double>> & vec);
+};
+
+class LennardJones : public Atoms {
+    private:
+        typedef vector<double> AtomCoord;
+        typedef vector<vector<double>> Coordinates;
+
+    public:
+        double sigma = 2.951;
+        double epsilon = 5.29;
+
+        LennardJones(const string &filename);
+
+        friend ostream & operator<<(ostream & os, const vector<vector<double>> & vec);
+
+        double calculate_LJ(double r_ij);
+        
+        double calculate_distance(AtomCoord coord1, AtomCoord coord2);
+
+        double calculate_total_energy(Coordinates coordinates);
+
+        double calculate_pair_energy(Coordinates coordinates, int i_particle);
+
+        void run_LJ(string &filename);
+};
+
+class FiniteDifference : public LennardJones {
+    private:
+        vector<double> h = {0.1, 0.01, 0.001, 0.0001};
+        typedef vector<double> AtomCoord;
+        typedef vector<vector<double>> Coordinates;
+
+    public:
+        FiniteDifference(const string &filename);
+
+        friend ostream & operator<<(ostream & os, Coordinates vec);
+
+        void printFormattedData(const string & label, Coordinates data, double stepsize);
+
+        vector<vector<double>> analytical_force(Coordinates coordinates);
+
+        double forward_difference(Coordinates coordinates, int i_particle, int dim, double h);
+
+        double central_difference(Coordinates coordinates, int i_particle, int dim, double h);
+
+        void steepest_descent(Coordinates coordinates);
+
+        void run_FD(string &filename);
+};
+
 struct Bracketmethod {
     double ax, bx, cx, fa, fb, fc;
     template <class T>
@@ -85,7 +149,7 @@ struct Bracketmethod {
     }
 };
 
-struct Golden : Bracketmethod {
+struct Golden : public Bracketmethod {
     double xmin, fmin;
     const double tol;
     Golden(const double toll=3.0e-8) : tol(toll) {}
@@ -127,7 +191,8 @@ struct Golden : Bracketmethod {
     }
 };
 
-struct Brent : Bracketmethod {
+/*
+struct Brent : public Bracketmethod {
     double xmin, fmin;
     const double tol;
     Brent(const double toll=3.0e-8) : tol(toll) {}
@@ -196,65 +261,3 @@ struct Brent : Bracketmethod {
         throw ("Too many iterations in brent");
     }
 }; */
-
-ostream & operator<<(ostream & os, const vector<Vector3d> & vec);
-
-class Atoms {
-    private:
-        string filename;
-
-    public:
-        Atoms(const string &filename);
-
-        vector<Vector3d> read_xyz(const string &filename);
-
-        friend ostream & operator<<(ostream & os, const vector<Vector3d> & vec);
-};
-
-class LennardJones : public Atoms {
-    private:
-        typedef Vector3d AtomCoord;
-        typedef vector<Vector3d> Coordinates;
-
-    public:
-        double sigma = 2.951;
-        double epsilon = 5.29;
-
-        LennardJones(const string &filename);
-
-        friend ostream & operator<<(ostream & os, const vector<Vector3d> & vec);
-
-        double calculate_LJ(double r_ij);
-        
-        double calculate_distance(AtomCoord coord1, AtomCoord coord2);
-
-        double calculate_total_energy(Coordinates coordinates);
-
-        double calculate_pair_energy(Coordinates coordinates, int i_particle);
-
-        void run_LJ(string &filename);
-};
-
-class FiniteDifference : public LennardJones {
-    private:
-        vector<double> h = {0.1, 0.01, 0.001, 0.0001};
-        typedef Vector3d AtomCoord;
-        typedef vector<Vector3d> Coordinates;
-
-    public:
-        FiniteDifference(const string &filename);
-
-        friend ostream & operator<<(ostream & os, const vector<Vector3d> & vec);
-
-        void printFormattedData(const string & label, const vector<vector<double>> & data, double stepsize);
-
-        vector<vector<double>> analytical_force(Coordinates coordinates);
-
-        double forward_difference(Coordinates coordinates, int i_particle, int dim, double h);
-
-        double central_difference(Coordinates coordinates, int i_particle, int dim, double h);
-
-        void run_FD(string &filename);
-};
-
-
