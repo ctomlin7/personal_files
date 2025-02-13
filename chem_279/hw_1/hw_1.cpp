@@ -216,9 +216,11 @@ void FiniteDifference::printFormattedData(const string & label, Coordinates data
 void FiniteDifference::steepest_descent(Coordinates coordinates) {
     Golden golden_search;
     double displacement;
-    const int max_iteration = 100;
+    double threshold = 0.001;
+    const int max_iteration = 10;
     int iteration = 0;
 
+    cout << endl;
     cout << "Initial Energy: " << calculate_total_energy(coordinates) << endl;
 
     Coordinates new_coords = coordinates;
@@ -227,7 +229,8 @@ void FiniteDifference::steepest_descent(Coordinates coordinates) {
             new_coords[i][j] -= displacement * central_difference(coordinates, i, j, 1e-4);
         }
     }
-    printFormattedData("Central Difference Force", new_coords, 0.0);
+    printFormattedData("Starting Central Difference Force", new_coords, 0.0);
+    double previous_energy = calculate_total_energy(coordinates);
 
     while (iteration < max_iteration) {
         Coordinates gradient = analytical_force(coordinates);
@@ -242,25 +245,29 @@ void FiniteDifference::steepest_descent(Coordinates coordinates) {
         };
 
         golden_search.bracket(0.0, 1.0, line_search_function);
-        displacement = golden_search.minimize(line_search_function);
+        displacement = golden_search.minimize(line_search_function); 
 
         for (int i = 0; i < coordinates.size(); ++i) {
             for (int j = 0; j < 3; ++j) {
                 coordinates[i][j] -= displacement * gradient[i][j];
             }
         }
+        printFormattedData("Central Difference Force", gradient, 0.0);
+        printFormattedData("New Coordinates", coordinates, 0.0);
 
         double energy = calculate_total_energy(coordinates);
-        cout << "Iteration " << iteration << ": Energy = " << energy << endl;
+        cout << "Total Iterations: " << iteration << endl;
 
-        if (displacement < 1e-6) {
+        if ((previous_energy - energy) < threshold) {
             break;
         }
 
+        previous_energy = energy;
         ++iteration;
     }
 
     cout << "Final Energy: " << calculate_total_energy(coordinates) << endl;
+    printFormattedData("Optimized Structure: ",  coordinates, 0.0);
 }
 
 ostream & operator<<(ostream & os, const vector<vector<double>> & vec) {
